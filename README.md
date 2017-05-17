@@ -4,6 +4,8 @@
 New sensortag CC2650STK's can be flash using the SmartRF Flash Programmer 2 software from TI.
 Connect you Sensortag using the Debugger and in the Main tab select Multiple flash images which can be found in the directory "hex".
 
+When flashing the sensortag for the first time, make sure to include `bim_extflash.hex`.
+
 ## Changing the firmware
 Download/install the BLE-stack (2.2.1) from TI website (http://www.ti.com/tool/ble-stack)
 You should get a directory like "ti\simplelink\ble_sdk_2_02_01_18\src\examples\sensortag\cc26xx\app"
