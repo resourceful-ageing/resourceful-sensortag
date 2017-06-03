@@ -114,7 +114,7 @@
 
 // What is the advertising interval when device is discoverable
 // (units of 625us, 160=100ms)
-#define DEFAULT_ADVERTISING_INTERVAL          100
+#define DEFAULT_ADVERTISING_INTERVAL          160
 
 // General discoverable mode advertises indefinitely
 #define DEFAULT_DISCOVERABLE_MODE             GAP_ADTYPE_FLAGS_GENERAL  //GAP_ADTYPE_FLAGS_LIMITED (default value)
@@ -141,6 +141,9 @@
 // Connection Pause Peripheral time value (in seconds)
 #define DEFAULT_CONN_PAUSE_PERIPHERAL         1
 
+// ADV-Restart: How often to stop and restart ADV
+#define ADV_RESTART_EVT_PERIOD                (1800 * 1000) // 30 min in mSec
+
 // Company Identifier: Texas Instruments Inc. (13)
 #define TI_COMPANY_ID                         0x000D
 #define TI_ST_DEVICE_ID                       0x03
@@ -166,6 +169,7 @@
 #define ST_CHAR_CHANGE_EVT                    0x0002
 #define ST_PERIODIC_EVT                       0x0004
 #define SBP_OAD_WRITE_EVT                     0x0008
+#define ADV_RESTART_EVT                       0x0010 // ADV-Restart: task event
 
 // Misc.
 #define INVALID_CONNHANDLE                    0xFFFF
@@ -213,6 +217,9 @@ static Char sensorTagTaskStack[ST_TASK_STACK_SIZE];
 
 // Clock instances for internal periodic events.
 static Clock_Struct periodicClock;
+
+// ADV-Restart: clock instance for ADV restart timer
+static Clock_Struct advRestartClock;
 
 // Queue object used for app messages
 static Queue_Struct appMsg;
@@ -324,6 +331,7 @@ static void SensorTag_processStateChangeEvt(gaprole_States_t newState) ;
 static void SensorTag_processCharValueChangeEvt(uint8_t serviceID, uint8_t paramID) ;
 static void SensorTag_stateChangeCB(gaprole_States_t newState);
 static void SensorTag_resetAllModules(void);
+static void SensorTag_performAdvRestartTask(void); // ADV-Restart: task handler
 static void SensorTag_clockHandler(UArg arg);
 static void SensorTag_enqueueMsg(uint8_t event, uint8_t serviceID, uint8_t paramID);
 static void SensorTag_callback(PIN_Handle handle, PIN_Id pinId);
@@ -420,6 +428,10 @@ static void SensorTag_init(void)
   // Create one-shot clocks for internal periodic events.
   Util_constructClock(&periodicClock, SensorTag_clockHandler,
                       ST_PERIODIC_EVT_PERIOD, 0, false, ST_PERIODIC_EVT);
+
+  // ADV-Restart: Create a ADV stop / restart clock
+  Util_constructClock(&advRestartClock, SensorTag_clockHandler,
+                      ADV_RESTART_EVT_PERIOD, 0, false, ADV_RESTART_EVT);
 
   // Setup the GAP
   GAP_SetParamValue(TGAP_CONN_PAUSE_PERIPHERAL, DEFAULT_CONN_PAUSE_PERIPHERAL);
@@ -635,6 +647,15 @@ static void SensorTag_taskFxn(UArg a0, UArg a1)
       SensorTagBatt_processSensorEvent();
     }
 
+    // ADV-Restart: Handle ADV restart event
+    if (events & ADV_RESTART_EVT)
+    {
+      events &= ~ADV_RESTART_EVT;
+
+      // Perform ADV stop/restart procedure
+      SensorTag_performAdvRestartTask();
+    }
+
     if (!!(events & ST_PERIODIC_EVT))
     {
       events &= ~ST_PERIODIC_EVT;
@@ -781,6 +802,8 @@ static void SensorTag_processStateChangeEvt(gaprole_States_t newState)
       Util_startClock(&periodicClock);
     }
 
+    Util_startClock(&advRestartClock); // ADV-Restart: restart the ADV clock
+
     // Make sure key presses are not stuck
     SensorTag_updateAdvertisingData(0);
     break;
@@ -792,6 +815,8 @@ static void SensorTag_processStateChangeEvt(gaprole_States_t newState)
       {
         Util_startClock(&periodicClock);
       }
+
+      Util_stopClock(&advRestartClock); // ADV-Restart: stop the ADV clock
 
       // Turn of LEDs and buzzer
       PIN_setOutputValue(hGpioPin, Board_LED1, Board_LED_OFF);
@@ -821,6 +846,9 @@ static void SensorTag_processStateChangeEvt(gaprole_States_t newState)
     break;
 
   case GAPROLE_WAITING:
+    Util_startClock(&advRestartClock); // ADV-Restart: start the ADV clock
+    break;
+
   case GAPROLE_WAITING_AFTER_TIMEOUT:
     SensorTag_resetAllModules();
     break;
@@ -1072,6 +1100,44 @@ void SensorTag_updateAdvertisingData(uint8_t keyStatus)
   advertData[KEY_STATE_OFFSET] = keyStatus;
   GAPRole_SetParameter(GAPROLE_ADVERT_DATA, sizeof(advertData), advertData);
 }
+
+// ADV-Restart: Task handler to stop and restart ADV
+/*********************************************************************
+ * @fn      SensorTag_performAdvRestartTask
+ *
+ * @brief   Perform ADV stop/restart if ADV is currently enabled
+ *          Supports connectable ADV only.
+ *
+ * @param   None.
+ *
+ * @return  None.
+ */
+static void SensorTag_performAdvRestartTask(void)
+{
+  bStatus_t ret;
+  uint8_t advEnable;
+
+  // Check current ADV status
+  GAPRole_GetParameter(GAPROLE_ADVERT_ENABLED, &advEnable);
+
+  // Stop and restart ADV if ADV was enabled. Otherwise, do nothing
+  if(advEnable == TRUE)
+  {
+    // Stop ADV
+    ret = GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, sizeof(uint8_t),
+                               &advEnable);
+
+    // Restart ADV
+    advEnable = TRUE;
+    ret |= GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, sizeof(uint8_t),
+                               &advEnable);
+
+    // Restart the clock if ADV was restarted
+    if (ret == SUCCESS)
+      Util_startClock(&advRestartClock);
+  }
+}
+
 
 /*******************************************************************************
 *******************************************************************************/
