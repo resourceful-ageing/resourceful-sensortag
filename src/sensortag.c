@@ -77,7 +77,6 @@
 #include "movementservice.h"
 #include "displayservice.h"
 #include "sensortag_register.h"
-
 #ifdef FACTORY_IMAGE
 #include "sensortag_factoryreset.h"
 #endif
@@ -101,10 +100,6 @@
 #include "sensortag_display.h"
 #include "sensortag_light.h"
 
-// Other devices
-#include "ExtFlash.h"
-#include "ext_flash_layout.h"
-
 /*******************************************************************************
  * CONSTANTS
  */
@@ -114,10 +109,10 @@
 
 // What is the advertising interval when device is discoverable
 // (units of 625us, 160=100ms)
-#define DEFAULT_ADVERTISING_INTERVAL          100
+#define DEFAULT_ADVERTISING_INTERVAL          160
 
 // General discoverable mode advertises indefinitely
-#define DEFAULT_DISCOVERABLE_MODE             GAP_ADTYPE_FLAGS_GENERAL  //GAP_ADTYPE_FLAGS_LIMITED (default value)
+#define DEFAULT_DISCOVERABLE_MODE             GAP_ADTYPE_FLAGS_LIMITED
 
 // Minimum connection interval (units of 1.25ms, 80=100ms) if automatic
 // parameter update request is enabled

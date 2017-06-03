@@ -74,7 +74,7 @@
  */
 
 // How often to perform sensor reads (milliseconds)
-#define SENSOR_DEFAULT_PERIOD   300000
+#define SENSOR_DEFAULT_PERIOD   1000
 
 // Time start measurement and data ready
 #define HUM_DELAY_PERIOD        15

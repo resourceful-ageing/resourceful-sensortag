@@ -301,7 +301,6 @@ void SensorTagMov_processSensorEvent(void)
       }
       else
       {
-
         if (appState != APP_STATE_IDLE)
         {
           // Transition from active to idle state

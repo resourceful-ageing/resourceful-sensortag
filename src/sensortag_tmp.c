@@ -73,7 +73,7 @@
  */
 
 // How often to perform sensor reads (milliseconds)
-#define SENSOR_DEFAULT_PERIOD   300000
+#define SENSOR_DEFAULT_PERIOD   1000
 
 // Delay from sensor enable to reading measurement
 // (allow for 250 ms conversion time)

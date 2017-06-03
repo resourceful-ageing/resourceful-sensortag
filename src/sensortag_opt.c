@@ -73,7 +73,7 @@
  */
 
 // How often to perform sensor reads (milliseconds)
-#define SENSOR_DEFAULT_PERIOD   300000
+#define SENSOR_DEFAULT_PERIOD   800
 
 // Length of the data for this sensor
 #define SENSOR_DATA_LEN         OPTIC_DATA_LEN
