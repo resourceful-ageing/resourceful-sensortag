@@ -1124,6 +1124,7 @@ static void SensorTag_performAdvRestartTask(void)
   if(advEnable == TRUE)
   {
     // Stop ADV
+    advEnable = FALSE;
     ret = GAPRole_SetParameter(GAPROLE_ADVERT_ENABLED, sizeof(uint8_t),
                                &advEnable);
 
