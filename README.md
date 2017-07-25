@@ -32,3 +32,5 @@ For developing a new firmware, click the "Debug" tool (bug icon).
 For creating a new hex-file, click the "Build" tool (hammer icon).
 
 Debugging automatically loads the firmware onto the connected sensortag.
+
+More details can be found on http://www.ti.com/lit/ug/swru393d/swru393d.pdf
